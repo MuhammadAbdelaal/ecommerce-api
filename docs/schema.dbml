@@ -1,0 +1,759 @@
+// ============================================================
+// MULTI-VENDOR E-COMMERCE MARKETPLACE — FINAL SCHEMA
+// ============================================================
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+Enum user_role {
+  customer
+  seller
+  admin
+  store_owner
+  support
+}
+
+Enum seller_status {
+  pending
+  approved
+  suspended
+  rejected
+}
+
+Enum product_status {
+  draft
+  active
+  inactive
+  rejected
+}
+
+Enum order_status {
+  pending
+  confirmed
+  processing
+  shipped
+  partially_delivered
+  delivered
+  cancelled
+  refunded
+  completed
+}
+
+Enum order_item_status {
+  pending
+  confirmed
+  processing
+  shipped
+  delivered
+  cancelled
+  returned
+  refunded
+}
+
+Enum shipment_status {
+  pending
+  processing
+  shipped
+  in_transit
+  delivered
+  cancelled
+  returned
+}
+
+Enum payment_status {
+  pending
+  authorized
+  paid
+  failed
+  cancelled
+  refunded
+  partially_refunded
+}
+
+Enum payment_method {
+  cash_on_delivery
+  card
+  paypal
+  instapay
+}
+
+Enum coupon_discount_type {
+  percentage
+  fixed
+}
+
+Enum prescription_status {
+  pending
+  approved
+  rejected
+  expired
+}
+
+Enum return_status {
+  requested
+  approved
+  rejected
+  received
+  refunded
+  cancelled
+}
+
+Enum ticket_status {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+Enum page_status {
+  draft
+  published
+  archived
+}
+
+// ============================================================
+// ACCOUNTS
+// ============================================================
+
+Table users {
+  id integer [pk, increment]
+  name varchar(255) [not null]
+  email varchar(255) [not null, unique]
+  phone varchar(50)
+  password_hash varchar(255) [not null]
+  role user_role [not null, default: 'customer']
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    role
+    phone
+  }
+}
+
+Table seller_profiles {
+  id integer [pk, increment]
+  user_id integer [not null, unique]
+  business_name varchar(255) [not null]
+  status seller_status [not null, default: 'pending']
+  approved_by integer
+  approved_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    status
+    approved_by
+  }
+}
+
+Table addresses {
+  id integer [pk, increment]
+  user_id integer [not null]
+  city varchar(100) [not null]
+  area varchar(100)
+  street varchar(255)
+  building varchar(100)
+  apartment varchar(100)
+  postal_code varchar(30)
+  phone varchar(50) [not null]
+  is_default boolean [not null, default: false]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    user_id
+  }
+}
+
+// ============================================================
+// CATALOG
+// ============================================================
+
+Table categories {
+  id integer [pk, increment]
+  parent_id integer
+  name varchar(255) [not null]
+  slug varchar(255) [not null, unique]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    parent_id
+    (parent_id, name) [unique]
+  }
+}
+
+Table brands {
+  id integer [pk, increment]
+  name varchar(255) [not null, unique]
+  slug varchar(255) [not null, unique]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table products {
+  id integer [pk, increment]
+  seller_id integer [not null]
+  category_id integer [not null]
+  brand_id integer
+  name varchar(255) [not null]
+  description text
+  sku varchar(100)
+  requires_prescription boolean [not null, default: false]
+  status product_status [not null, default: 'draft']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    seller_id
+    category_id
+    brand_id
+    status
+    (seller_id, sku) [unique]
+  }
+}
+
+Table product_images {
+  id integer [pk, increment]
+  product_id integer [not null]
+  variant_id integer
+  url varchar(1000) [not null]
+  sort_order integer [not null, default: 0]
+  is_primary boolean [not null, default: false]
+  created_at timestamp [not null]
+
+  Indexes {
+    product_id
+    variant_id
+    (product_id, sort_order)
+  }
+}
+
+Table product_attributes {
+  id integer [pk, increment]
+  product_id integer [not null]
+  name varchar(100) [not null]
+
+  Indexes {
+    (product_id, name) [unique]
+  }
+}
+
+Table product_attribute_values {
+  id integer [pk, increment]
+  attribute_id integer [not null]
+  value varchar(255) [not null]
+
+  Indexes {
+    (attribute_id, value) [unique]
+  }
+}
+
+Table product_variants {
+  id integer [pk, increment]
+  product_id integer [not null]
+  label varchar(255)
+  price decimal(12,2) [not null]
+  compare_at_price decimal(12,2)
+  sku varchar(100) [not null]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (product_id, sku) [unique]
+  }
+}
+
+Table variant_attribute_values {
+  id integer [pk, increment]
+  variant_id integer [not null]
+  attribute_value_id integer [not null]
+
+  Indexes {
+    (variant_id, attribute_value_id) [unique]
+    attribute_value_id
+  }
+}
+
+// ============================================================
+// INVENTORY
+// ============================================================
+
+Table inventory_batches {
+  id integer [pk, increment]
+  variant_id integer [not null]
+  batch_number varchar(100)
+  expiry_date date
+  quantity_received integer [not null, default: 0]
+  quantity_available integer [not null, default: 0]
+  quantity_reserved integer [not null, default: 0]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    variant_id
+    expiry_date
+    (variant_id, batch_number) [unique]
+  }
+}
+
+Table inventory_transactions {
+  id integer [pk, increment]
+  variant_id integer [not null]
+  inventory_batch_id integer
+  quantity integer [not null]
+  transaction_type varchar(50) [not null]
+  reference_type varchar(50)
+  reference_id integer
+  created_at timestamp [not null]
+
+  Indexes {
+    variant_id
+    inventory_batch_id
+    (reference_type, reference_id)
+  }
+}
+
+// ============================================================
+// CART & WISHLIST
+// ============================================================
+
+Table carts {
+  id integer [pk, increment]
+  user_id integer [not null, unique]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table cart_items {
+  id integer [pk, increment]
+  cart_id integer [not null]
+  variant_id integer [not null]
+  quantity integer [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (cart_id, variant_id) [unique]
+    variant_id
+  }
+}
+
+Table wishlists {
+  id integer [pk, increment]
+  user_id integer [not null, unique]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table wishlist_items {
+  id integer [pk, increment]
+  wishlist_id integer [not null]
+  variant_id integer [not null]
+  added_at timestamp [not null]
+
+  Indexes {
+    (wishlist_id, variant_id) [unique]
+    variant_id
+  }
+}
+
+// ============================================================
+// PRESCRIPTIONS
+// ============================================================
+
+Table prescriptions {
+  id integer [pk, increment]
+  user_id integer [not null]
+  seller_id integer
+  image_url varchar(1000) [not null]
+  status prescription_status [not null, default: 'pending']
+  reviewed_by integer
+  reviewed_at timestamp
+  expires_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    user_id
+    seller_id
+    status
+    reviewed_by
+  }
+}
+
+// ============================================================
+// ORDERS
+// ============================================================
+
+Table orders {
+  id integer [pk, increment]
+  user_id integer [not null]
+  coupon_id integer
+  status order_status [not null, default: 'pending']
+
+  subtotal decimal(12,2) [not null, default: 0]
+  discount_amount decimal(12,2) [not null, default: 0]
+  shipping_fee decimal(12,2) [not null, default: 0]
+  tax_amount decimal(12,2) [not null, default: 0]
+  total_amount decimal(12,2) [not null, default: 0]
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  cancelled_at timestamp
+  completed_at timestamp
+
+  Indexes {
+    user_id
+    coupon_id
+    status
+    created_at
+  }
+}
+
+// Immutable snapshot of the address used for this order.
+// Never rely on the editable addresses table for historical orders.
+Table order_shipping_addresses {
+  id integer [pk, increment]
+  order_id integer [not null, unique]
+
+  recipient_name varchar(255) [not null]
+  phone varchar(50) [not null]
+  city varchar(100) [not null]
+  area varchar(100)
+  street varchar(255)
+  building varchar(100)
+  apartment varchar(100)
+  postal_code varchar(30)
+
+  created_at timestamp [not null]
+}
+
+Table order_items {
+  id integer [pk, increment]
+  order_id integer [not null]
+  variant_id integer [not null]
+  seller_id integer [not null]
+
+  shipment_id integer
+  prescription_id integer
+
+  quantity integer [not null]
+  price_at_purchase decimal(12,2) [not null]
+  discount_amount decimal(12,2) [not null, default: 0]
+  tax_amount decimal(12,2) [not null, default: 0]
+  total_amount decimal(12,2) [not null]
+
+  item_status order_item_status [not null, default: 'pending']
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    order_id
+    variant_id
+    seller_id
+    shipment_id
+    prescription_id
+  }
+}
+
+// ============================================================
+// ORDER / INVENTORY BATCH ALLOCATION
+// ============================================================
+
+Table order_item_batch_allocations {
+  id integer [pk, increment]
+  order_item_id integer [not null]
+  inventory_batch_id integer [not null]
+  quantity integer [not null]
+  created_at timestamp [not null]
+
+  Indexes {
+    (order_item_id, inventory_batch_id) [unique]
+    inventory_batch_id
+  }
+}
+
+// ============================================================
+// SHIPPING
+// ============================================================
+
+// Normally one shipment per seller per order.
+Table shipments {
+  id integer [pk, increment]
+  order_id integer [not null]
+  seller_id integer [not null]
+  carrier varchar(100)
+  tracking_number varchar(255)
+  status shipment_status [not null, default: 'pending']
+
+  shipping_fee decimal(12,2) [not null, default: 0]
+
+  shipped_at timestamp
+  delivered_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    status
+    tracking_number [unique]
+    (order_id, seller_id) [unique]
+  }
+}
+
+// ============================================================
+// PAYMENTS
+// ============================================================
+
+// Multiple payment records allow failed attempts, retries, refunds.
+Table payments {
+  id integer [pk, increment]
+  order_id integer [not null]
+  method payment_method [not null]
+  status payment_status [not null, default: 'pending']
+
+  amount decimal(12,2) [not null]
+  currency varchar(3) [not null, default: 'EGP']
+
+  provider varchar(100)
+  transaction_ref varchar(255)
+  failure_reason text
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  paid_at timestamp
+  refunded_at timestamp
+
+  Indexes {
+    order_id
+    status
+    transaction_ref [unique]
+  }
+}
+
+// ============================================================
+// COUPONS
+// ============================================================
+
+Table coupons {
+  id integer [pk, increment]
+  code varchar(100) [not null, unique]
+  discount_type coupon_discount_type [not null]
+  discount_value decimal(12,2) [not null]
+
+  min_order_amount decimal(12,2) [not null, default: 0]
+  max_discount_amount decimal(12,2)
+
+  max_uses integer
+  max_uses_per_user integer
+
+  valid_from timestamp [not null]
+  valid_until timestamp [not null]
+  is_active boolean [not null, default: true]
+
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    is_active
+    valid_from
+    valid_until
+  }
+}
+
+Table coupon_usages {
+  id integer [pk, increment]
+  coupon_id integer [not null]
+  user_id integer [not null]
+  order_id integer [not null, unique]
+  used_at timestamp [not null]
+
+  Indexes {
+    (coupon_id, user_id)
+  }
+}
+
+// ============================================================
+// RETURNS
+// ============================================================
+
+Table return_requests {
+  id integer [pk, increment]
+  order_item_id integer [not null]
+  reason text [not null]
+  status return_status [not null, default: 'requested']
+
+  requested_at timestamp [not null]
+  deadline timestamp
+  approved_at timestamp
+  received_at timestamp
+  refunded_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    order_item_id
+    status
+  }
+}
+
+// ============================================================
+// REVIEWS
+// ============================================================
+
+Table product_reviews {
+  id integer [pk, increment]
+  product_id integer [not null]
+  user_id integer [not null]
+  order_id integer [not null]
+  rating integer [not null]
+  comment text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (product_id, user_id, order_id) [unique]
+  }
+}
+
+Table seller_reviews {
+  id integer [pk, increment]
+  seller_id integer [not null]
+  user_id integer [not null]
+  order_id integer [not null]
+  rating integer [not null]
+  comment text
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    (seller_id, user_id, order_id) [unique]
+  }
+}
+
+// ============================================================
+// SUPPORT
+// ============================================================
+
+Table support_tickets {
+  id integer [pk, increment]
+  user_id integer [not null]
+  subject varchar(255) [not null]
+  status ticket_status [not null, default: 'open']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  closed_at timestamp
+
+  Indexes {
+    user_id
+    status
+  }
+}
+
+Table support_messages {
+  id integer [pk, increment]
+  ticket_id integer [not null]
+  sender_id integer [not null]
+  message text [not null]
+  created_at timestamp [not null]
+
+  Indexes {
+    ticket_id
+  }
+}
+
+// ============================================================
+// CONTENT / CMS
+// ============================================================
+
+Table pages {
+  id integer [pk, increment]
+  slug varchar(255) [not null, unique]
+  title varchar(255) [not null]
+  content text
+  status page_status [not null, default: 'draft']
+  updated_by integer
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Indexes {
+    status
+  }
+}
+
+// ============================================================
+// RELATIONSHIPS
+// ============================================================
+
+Ref: seller_profiles.user_id > users.id
+Ref: seller_profiles.approved_by > users.id
+Ref: addresses.user_id > users.id
+
+Ref: categories.parent_id > categories.id
+Ref: products.seller_id > seller_profiles.id
+Ref: products.category_id > categories.id
+Ref: products.brand_id > brands.id
+Ref: product_images.product_id > products.id
+Ref: product_images.variant_id > product_variants.id
+Ref: product_attributes.product_id > products.id
+Ref: product_attribute_values.attribute_id > product_attributes.id
+Ref: product_variants.product_id > products.id
+Ref: variant_attribute_values.variant_id > product_variants.id
+Ref: variant_attribute_values.attribute_value_id > product_attribute_values.id
+
+Ref: inventory_batches.variant_id > product_variants.id
+Ref: inventory_transactions.variant_id > product_variants.id
+Ref: inventory_transactions.inventory_batch_id > inventory_batches.id
+
+Ref: carts.user_id > users.id
+Ref: cart_items.cart_id > carts.id
+Ref: cart_items.variant_id > product_variants.id
+Ref: wishlists.user_id > users.id
+Ref: wishlist_items.wishlist_id > wishlists.id
+Ref: wishlist_items.variant_id > product_variants.id
+
+Ref: prescriptions.user_id > users.id
+Ref: prescriptions.seller_id > seller_profiles.id
+Ref: prescriptions.reviewed_by > users.id
+
+Ref: orders.user_id > users.id
+Ref: orders.coupon_id > coupons.id
+Ref: order_shipping_addresses.order_id > orders.id
+Ref: order_items.order_id > orders.id
+Ref: order_items.variant_id > product_variants.id
+Ref: order_items.seller_id > seller_profiles.id
+Ref: order_items.shipment_id > shipments.id
+Ref: order_items.prescription_id > prescriptions.id
+
+Ref: order_item_batch_allocations.order_item_id > order_items.id
+Ref: order_item_batch_allocations.inventory_batch_id > inventory_batches.id
+
+Ref: shipments.order_id > orders.id
+Ref: shipments.seller_id > seller_profiles.id
+
+Ref: payments.order_id > orders.id
+
+Ref: coupon_usages.coupon_id > coupons.id
+Ref: coupon_usages.user_id > users.id
+Ref: coupon_usages.order_id > orders.id
+
+Ref: return_requests.order_item_id > order_items.id
+
+Ref: product_reviews.product_id > products.id
+Ref: product_reviews.user_id > users.id
+Ref: product_reviews.order_id > orders.id
+Ref: seller_reviews.seller_id > seller_profiles.id
+Ref: seller_reviews.user_id > users.id
+Ref: seller_reviews.order_id > orders.id
+
+Ref: support_tickets.user_id > users.id
+Ref: support_messages.ticket_id > support_tickets.id
+Ref: support_messages.sender_id > users.id
+
+Ref: pages.updated_by > users.id
