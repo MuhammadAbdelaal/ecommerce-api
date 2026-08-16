@@ -1,0 +1,29 @@
+{
+  "name": "ecommerce-api",
+  "version": "1.0.0",
+  "description": "A scalable, multi-seller e-commerce backend for the health & beauty market (cosmetics and pharmacy retail), built with Node.js, Express, and PostgreSQL (Prisma ORM). Designed API-first so the same backend can power a web storefront, seller dashboard, admin panel, and mobile app without changes.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MuhammadAbdelaal/ecommerce-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/MuhammadAbdelaal/ecommerce-api/issues"
+  },
+  "homepage": "https://github.com/MuhammadAbdelaal/ecommerce-api#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}
