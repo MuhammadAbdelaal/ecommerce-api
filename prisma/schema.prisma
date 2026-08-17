@@ -30,4 +30,41 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  sellerProfile   SellerProfile?  @relation("SellerUser")
+  approvedSellers SellerProfile[] @relation("SellerApprover")
+}
+
+enum SellerStatus {
+  pending
+  approved
+  suspended
+  rejected
+}
+
+model SellerProfile {
+  id           Int          @id @default(autoincrement())
+  userId       Int          @unique
+  user         User         @relation("SellerUser", fields: [userId], references: [id])
+  businessName String
+  status       SellerStatus @default(pending)
+  approvedBy   Int?
+  approver     User?        @relation("SellerApprover", fields: [approvedBy], references: [id])
+  approvedAt   DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Category {
+  id       Int    @id @default(autoincrement())
+  parentId Int?
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
